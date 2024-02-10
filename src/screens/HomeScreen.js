@@ -6,12 +6,12 @@ import { BlurView } from 'expo-blur';
 import React, { useCallback, useEffect, useState, useMemo } from 'react'
 import { theme } from '../theme/theme'
 
-import {CalendarDaysIcon, ClockIcon, MagnifyingGlassIcon, ChevronRightIcon} from 'react-native-heroicons/outline'
-import {MapPinIcon} from 'react-native-heroicons/solid'
+import {CalendarDaysIcon, ClockIcon, MagnifyingGlassIcon, ChevronRightIcon, MapPinIcon} from 'react-native-heroicons/outline'
 import { debounce } from 'lodash'
 import { fetchLocations, fetchWeatherForcast } from '../api/weather'
-import { nightWeatherImages, weatherImages, getWeatherIcon, getWeatherVideo } from '../constants'
+import { getWeatherIcon, getWeatherVideo } from '../constants'
 import * as Progress from 'react-native-progress';
+import * as Location from 'expo-location';
 import { getData, storeData } from '../utils/asyncStorage'
 
 if (Platform.OS == 'android') {
@@ -64,13 +64,31 @@ export default function HomeScreen({navigation}) {
     }
   },[])
 
+  const loadWeatherFromCurrentLocation = async () => {
+    setLoading(true);
+    let { status } = await Location.requestForegroundPermissionsAsync();
+    if (status !== 'granted') {
+      console.log('Permisstion not granted');
+    }
+    else{
+      let curLocation = await Location.getCurrentPositionAsync({});
+      let longLat = curLocation.coords.latitude +"," + curLocation.coords.longitude;
+      console.log(longLat)
+      fetchWeatherForcast({cityName: longLat, days: '3'}).then(data=>{
+        setWeather(data);
+        storeData('city', data.location.name);
+        setLoading(false);
+      })
+    }
+  }
+
   
 
   const loadWeatherData = async () => {
     let myCity = await getData('city');
     let cityName = "Nuuk";
     if(myCity) cityName = myCity;
-    fetchWeatherForcast({cityName: cityName, days: '7'}).then(data=>{
+    fetchWeatherForcast({cityName: cityName, days: '3'}).then(data=>{
       setWeather(data);
       setLoading(false);
     })
@@ -109,7 +127,6 @@ export default function HomeScreen({navigation}) {
             positionMillis={500}
             onLoad={() => {
             }}
-            on
             resizeMode="cover"
             shouldPlay
             source={current ? current.is_day == 1 ? getWeatherVideo(current.condition.text, true) : getWeatherVideo(current.condition.text, false) : getWeatherVideo('Sunny', true)}
@@ -125,7 +142,9 @@ export default function HomeScreen({navigation}) {
                 {
                   showSearch ? (
                   <TextInput onChangeText={handleTextDebounce} placeholder='Search city' placeholderTextColor={'lightgray'} className="pl-6 h-10 flex-1 text-base text-white"/>
-                  ): null
+                  ): <TouchableOpacity onPress={loadWeatherFromCurrentLocation} style={{backgroundColor: theme.bgWhite(0.4)}} className='rounded-full p-3 m-1'>
+                      <MapPinIcon size="25" color="white"/>
+                    </TouchableOpacity>
                 }
                 <TouchableOpacity onPress={() => setShowSearch((prevState) => !prevState)} style={{backgroundColor: theme.bgWhite(0.4)}} className='rounded-full p-3 m-1'>
                     <MagnifyingGlassIcon size="25" color="white"/>
