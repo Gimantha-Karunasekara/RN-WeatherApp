@@ -23,9 +23,8 @@ if (Platform.OS == 'android') {
 
 const WINDOW_HEIGHT = Dimensions.get('window').height;
 
-export default function HomeScreen({navigation}) {
+export default function HomeScreen() {
 
-  
   const [showSearch, setShowSearch] = useState(false);
   const [locations, setLocations] = useState([]);
   const [weather, setWeather] = useState({});
@@ -39,7 +38,7 @@ export default function HomeScreen({navigation}) {
     setLocations([]);
     setShowSearch(false);
     setLoading(true);
-    fetchWeatherForcast({cityName: loc.name, days: '7'}).then(data=>{
+    fetchWeatherForcast({cityName: loc.name, days: '3'}).then(data=>{
       setWeather(data);
       setLoading(false);
       storeData('city', loc.name);
@@ -69,6 +68,7 @@ export default function HomeScreen({navigation}) {
     let { status } = await Location.requestForegroundPermissionsAsync();
     if (status !== 'granted') {
       console.log('Permisstion not granted');
+      setLoading(false);
     }
     else{
       let curLocation = await Location.getCurrentPositionAsync({});
@@ -81,8 +81,6 @@ export default function HomeScreen({navigation}) {
       })
     }
   }
-
-  
 
   const loadWeatherData = async () => {
     let myCity = await getData('city');
